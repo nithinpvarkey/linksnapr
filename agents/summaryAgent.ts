@@ -5,10 +5,12 @@ import { sanitiseAiOutput, extractDomain } from '@/lib/security'
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const SYSTEM_PROMPT =
-  'Write 3 to 4 sentences summarising the key point of the page content provided. ' +
-  'Be specific — name the actual subject, product, person, or event. ' +
-  'Do not start with "This page", "This article", or "The page". ' +
-  'Write in plain English as if explaining to a curious friend. No AI disclaimers.'
+  'Summarise what this webpage is about in 3 to 4 sentences based on the content provided. ' +
+  'If the content is limited, use the page title and any available text to make a reasonable inference about what the page covers. ' +
+  'Be specific — name the actual subject, product, person, or event if identifiable. ' +
+  'Do not start with "This page" or "This article". ' +
+  'Do not say you lack content or cannot help. ' +
+  'Write in plain English. No AI disclaimers.'
 
 const INPUT_CHAR_LIMIT = 4_000   // chars sent to any model
 const OUTPUT_MAX_CHARS = 500     // passed to sanitiseAiOutput

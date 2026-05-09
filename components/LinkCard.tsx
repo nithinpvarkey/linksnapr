@@ -355,39 +355,6 @@ export function LinkCard({ url, isPro, onUpgradeNeeded }: LinkCardProps): JSX.El
           </button>
         ) : null}
 
-        {/* Summary */}
-        {!summary && status === 'streaming' && !errors['summary'] ? (
-          <div className="flex flex-col gap-2">
-            <div className="h-3 bg-slate-200 rounded motion-safe:animate-pulse" />
-            <div className="h-3 bg-slate-200 rounded motion-safe:animate-pulse" />
-            <div className="h-3 w-3/4 bg-slate-200 rounded motion-safe:animate-pulse" />
-          </div>
-        ) : errors['summary'] ? (
-          <div className="flex flex-col gap-2">
-            <p className="text-sm italic text-slate-400">
-              Could not generate summary for this page.
-            </p>
-            <button
-              aria-label="Retry generating summary"
-              disabled={!!isRetrying['summary']}
-              onClick={() => { handleRetry('summary') }}
-              className="self-start min-h-[44px] px-3 text-sm text-indigo-500 hover:text-indigo-700 disabled:opacity-50 transition-colors"
-            >
-              {isRetrying['summary'] ? 'Retrying...' : 'Try again'}
-            </button>
-          </div>
-        ) : (
-          <p className="text-sm text-slate-600 leading-relaxed line-clamp-4">
-            {summary}
-            {status === 'streaming' && (
-              <span
-                aria-hidden="true"
-                className="inline-block w-px h-3.5 bg-slate-500 ml-px align-text-bottom motion-safe:animate-pulse"
-              />
-            )}
-          </p>
-        )}
-
         {/* Footer — URL + watermark */}
         <div className="flex items-center justify-between pt-1 border-t border-slate-50 gap-2">
           <a

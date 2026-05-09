@@ -107,8 +107,12 @@ export function ShareButtons({ url, title, summary, shareUrl }: ShareButtonsProp
   }
 
   const link        = shareUrl ?? url
-  const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(`${title} — ${link}`)}`
-  const twitterUrl  = `https://twitter.com/intent/tweet?text=${encodeURIComponent(`${summary.slice(0, 240)} — ${link}`)}`
+  const waText      = title ? `${title} — ` : ''
+  const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(`${waText}${link}`)}`
+  const twitterText = title ? title.slice(0, 100) : 'Check this out'
+  const twitterUrl  = shareUrl
+    ? `https://twitter.com/intent/tweet?text=${encodeURIComponent(twitterText)}&url=${encodeURIComponent(shareUrl)}`
+    : `https://twitter.com/intent/tweet?text=${encodeURIComponent(twitterText)}&url=${encodeURIComponent(url)}`
 
   const base    = 'flex items-center justify-center rounded-lg p-2.5 min-h-[44px] min-w-[44px] transition-colors'
   const idle    = `${base} bg-slate-100 text-slate-600 hover:bg-slate-200`

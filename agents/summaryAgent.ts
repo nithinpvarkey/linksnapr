@@ -5,12 +5,15 @@ import { sanitiseAiOutput, extractDomain } from '@/lib/security'
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const SYSTEM_PROMPT =
-  'Summarise what this webpage is about in 3 to 4 sentences based on the content provided. ' +
-  'If the content is limited, use the page title and any available text to make a reasonable inference about what the page covers. ' +
-  'Be specific — name the actual subject, product, person, or event if identifiable. ' +
-  'Do not start with "This page" or "This article". ' +
-  'Do not say you lack content or cannot help. ' +
-  'Write in plain English. No AI disclaimers.'
+  'You are given the text content scraped from a webpage. ' +
+  'Write 2 to 3 sentences describing what this website or page is about. ' +
+  'Base your answer strictly on the title and any text provided. ' +
+  'If only a title is available, describe what the site likely offers based on its name and any visible text. ' +
+  'Be direct and factual. ' +
+  'Never say you lack information or cannot help. ' +
+  'Never say the page is awaiting content or is a template. ' +
+  'Do not start with "This page" or "This website". ' +
+  'No AI disclaimers.'
 
 const INPUT_CHAR_LIMIT = 4_000   // chars sent to any model
 const OUTPUT_MAX_CHARS = 500     // passed to sanitiseAiOutput
@@ -30,8 +33,8 @@ function buildFailure(error: string, durationMs: number): AgentResult<SummaryRes
   return { success: false, error, source: 'primary', durationMs }
 }
 
-function buildUserMessage(text: string): string {
-  return `Page content:\n\n${text}`
+function buildUserMessage(title: string, text: string): string {
+  return `Page title: ${title}\n\nPage content:\n\n${text}`
 }
 
 function tryWithTimeout<T>(promise: Promise<T>): Promise<T> {
@@ -44,7 +47,7 @@ function tryWithTimeout<T>(promise: Promise<T>): Promise<T> {
   })
 }
 
-async function callGemini(text: string): Promise<string> {
+async function callGemini(title: string, text: string): Promise<string> {
   const apiKey = process.env['GEMINI_API_KEY']
   if (!apiKey) throw new Error('MISSING_KEY')
 
@@ -54,7 +57,7 @@ async function callGemini(text: string): Promise<string> {
     systemInstruction: SYSTEM_PROMPT,
   })
 
-  const result = await model.generateContent(buildUserMessage(text))
+  const result = await model.generateContent(buildUserMessage(title, text))
   const output = result.response.text()
   if (!output) throw new Error('EMPTY_RESPONSE')
   return output
@@ -77,7 +80,7 @@ function isOpenRouterResponse(data: unknown): data is OpenRouterResponse {
   )
 }
 
-async function callOpenRouter(model: string, text: string): Promise<string> {
+async function callOpenRouter(model: string, title: string, text: string): Promise<string> {
   const apiKey = process.env['OPENROUTER_API_KEY']
   if (!apiKey) throw new Error('MISSING_KEY')
 
@@ -93,7 +96,7 @@ async function callOpenRouter(model: string, text: string): Promise<string> {
       model,
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user',   content: buildUserMessage(text) },
+        { role: 'user',   content: buildUserMessage(title, text) },
       ],
       max_tokens: 200,
     }),
@@ -167,6 +170,7 @@ async function tryModel(
  */
 export async function summarisePage(
   text: string,
+  title: string,
   url: string,
 ): Promise<AgentResult<SummaryResult>> {
   const start     = Date.now()
@@ -177,17 +181,17 @@ export async function summarisePage(
     {
       label:  'gemini-2.5-flash',
       source: 'primary'  as const,
-      call:   () => callGemini(truncated),
+      call:   () => callGemini(title, truncated),
     },
     {
       label:  'moonshot-v1-8k',
       source: 'fallback' as const,
-      call:   () => callOpenRouter('moonshot-v1-8k', truncated),
+      call:   () => callOpenRouter('moonshot-v1-8k', title, truncated),
     },
     {
       label:  'deepseek/deepseek-chat',
       source: 'fallback' as const,
-      call:   () => callOpenRouter('deepseek/deepseek-chat', truncated),
+      call:   () => callOpenRouter('deepseek/deepseek-chat', title, truncated),
     },
   ]
 

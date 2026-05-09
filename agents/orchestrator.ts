@@ -90,7 +90,7 @@ export async function orchestrate(
   // let variables across async closure boundaries, so we return values instead.
 
   const runSummary = async (): Promise<AgentResult<SummaryResult>> => {
-    const result = await summarisePage(text, finalUrl)
+    const result = await summarisePage(text, title, finalUrl)
     if (result.success) {
       await stream.sendEvent('summary', { token: result.data.summary })
     } else {

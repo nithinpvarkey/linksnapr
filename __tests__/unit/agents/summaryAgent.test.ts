@@ -124,7 +124,7 @@ describe('summarisePage', () => {
       // Arrange: beforeEach sets Gemini to return 'Gemini summary.' and
       //          mockSanitise to pass text through unchanged (slice to 500)
       // Act
-      const result = await summarisePage('Page content', 'https://example.com/')
+      const result = await summarisePage('Page content', 'Test page title', 'https://example.com/')
       // Assert
       expect(result).toMatchObject({
         success:    true,
@@ -156,7 +156,7 @@ describe('summarisePage', () => {
           )
           .mockResolvedValueOnce({ response: { text: () => 'Retry summary.' } })
         // Act
-        const resultPromise = summarisePage('Page content', 'https://example.com/')
+        const resultPromise = summarisePage('Page content', 'Test page title', 'https://example.com/')
         await Promise.resolve()          // flush pending microtasks before advancing clock
         jest.advanceTimersByTime(10_001) // fire attempt-1 timeout → TimeoutError
         const result = await resultPromise // retry runs; second generateContent resolves
@@ -175,7 +175,7 @@ describe('summarisePage', () => {
         mockGeminiNeverResolves()
         mockFetch.mockResolvedValue(makeOpenRouterResponse('Kimi summary.'))
         // Act
-        const resultPromise = summarisePage('Page content', 'https://example.com/')
+        const resultPromise = summarisePage('Page content', 'Test page title', 'https://example.com/')
         await Promise.resolve()          // flush before first timer advance
         jest.advanceTimersByTime(10_001) // fire attempt-1 timeout
         await Promise.resolve()          // let catch block run and register attempt-2 setTimeout
@@ -197,7 +197,7 @@ describe('summarisePage', () => {
       mockGeminiFailure(new Error('RATE_LIMIT'))
       mockFetch.mockResolvedValue(makeOpenRouterResponse('Kimi summary.'))
       // Act
-      const result = await summarisePage('Page content', 'https://example.com/')
+      const result = await summarisePage('Page content', 'Test page title', 'https://example.com/')
       // Assert: generateContent called exactly once — no retry attempt
       expect(mockGenerateContent).toHaveBeenCalledTimes(1)
       expect(result).toMatchObject({
@@ -213,7 +213,7 @@ describe('summarisePage', () => {
       mockGeminiFailure(new Error('API_ERROR'))
       mockFetch.mockResolvedValue(makeOpenRouterResponse('Kimi summary.'))
       // Act
-      const result = await summarisePage('Page content', 'https://example.com/')
+      const result = await summarisePage('Page content', 'Test page title', 'https://example.com/')
       // Assert
       expect(mockGenerateContent).toHaveBeenCalledTimes(1)
       expect(result).toMatchObject({
@@ -231,7 +231,7 @@ describe('summarisePage', () => {
         .mockResolvedValueOnce(makeOpenRouterFailure(500))                    // Kimi: fails
         .mockResolvedValueOnce(makeOpenRouterResponse('DeepSeek summary.'))   // DeepSeek: succeeds
       // Act
-      const result = await summarisePage('Page content', 'https://example.com/')
+      const result = await summarisePage('Page content', 'Test page title', 'https://example.com/')
       // Assert: source is 'fallback' — DeepSeek is the third model in the array
       expect(result).toMatchObject({
         success:    true,
@@ -246,7 +246,7 @@ describe('summarisePage', () => {
       mockGeminiFailure(new Error('Gemini error'))
       mockFetch.mockResolvedValue(makeOpenRouterFailure(500))
       // Act
-      const result = await summarisePage('Page content', 'https://example.com/')
+      const result = await summarisePage('Page content', 'Test page title', 'https://example.com/')
       // Assert: source is 'primary' — comes from buildFailure which hardcodes 'primary'
       expect(result).toMatchObject({
         success:    false,
@@ -267,7 +267,7 @@ describe('summarisePage', () => {
       const rawOutput = '<p>Summary with HTML</p>'
       mockGeminiSuccess(rawOutput)
       // Act
-      const result = await summarisePage('Page content', 'https://example.com/')
+      const result = await summarisePage('Page content', 'Test page title', 'https://example.com/')
       // Assert: sanitiseAiOutput receives the exact AI output and OUTPUT_MAX_CHARS = 500
       expect(mockSanitise).toHaveBeenCalledWith(rawOutput, 500)
       expect(result).toMatchObject({
@@ -281,7 +281,7 @@ describe('summarisePage', () => {
       const longOutput = 'a'.repeat(600)
       mockGeminiSuccess(longOutput)
       // Act
-      const result = await summarisePage('Page content', 'https://example.com/')
+      const result = await summarisePage('Page content', 'Test page title', 'https://example.com/')
       // Assert: sanitiseAiOutput called with full output and 500; result trimmed to 500
       expect(mockSanitise).toHaveBeenCalledWith(longOutput, 500)
       expect(result).toMatchObject({ success: true, source: 'primary', durationMs: expect.any(Number) })
@@ -296,7 +296,7 @@ describe('summarisePage', () => {
       mockGenerateContent.mockResolvedValue({ response: { text: (): string => '' } })
       mockFetch.mockResolvedValue(makeOpenRouterResponse('Kimi summary.'))
       // Act
-      const result = await summarisePage('Page content', 'https://example.com/')
+      const result = await summarisePage('Page content', 'Test page title', 'https://example.com/')
       // Assert: generateContent called once (no retry), Kimi succeeded
       expect(mockGenerateContent).toHaveBeenCalledTimes(1)
       expect(result).toMatchObject({
@@ -311,7 +311,7 @@ describe('summarisePage', () => {
       mockSanitise.mockReturnValueOnce('') // first call (Gemini's whitespace output) → empty
       mockFetch.mockResolvedValue(makeOpenRouterResponse('Kimi summary.'))
       // Act
-      const result = await summarisePage('Page content', 'https://example.com/')
+      const result = await summarisePage('Page content', 'Test page title', 'https://example.com/')
       // Assert: Kimi succeeded after Gemini's sanitised output was empty
       expect(result).toMatchObject({
         success: true, source: 'fallback', durationMs: expect.any(Number),
@@ -329,7 +329,7 @@ describe('summarisePage', () => {
       // Arrange: 4 000-char text — only first 3 000 chars should reach generateContent
       const longText = 'b'.repeat(4_000)
       // Act
-      await summarisePage(longText, 'https://example.com/')
+      await summarisePage(longText, 'Test page title', 'https://example.com/')
       // Assert: the prompt passed to generateContent contains exactly 3 000 'b' chars,
       //         not 3 001 — buildUserMessage wraps the truncated text as "Page content:\n\n<text>"
       const prompt = mockGenerateContent.mock.calls[0]?.[0] ?? ''
@@ -340,7 +340,7 @@ describe('summarisePage', () => {
     it('should call extractDomain with the url parameter', async () => {
       // Arrange: pass a distinct URL to verify the exact argument
       // Act
-      await summarisePage('Page content', 'https://example.com/article')
+      await summarisePage('Page content', 'Test page title', 'https://example.com/article')
       // Assert
       expect(mockExtractDomain).toHaveBeenCalledWith('https://example.com/article')
     })
